@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ## JetBrains Trial Reset ${{ steps.get_version.outputs.version }}
+            
+            ### 🎉 What's New
+            
+            See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+            
+            ### 📦 Installation
+            
+            **Linux (x86_64):**
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/jb-reset-linux-x86_64
+            chmod +x jb-reset-linux-x86_64
+            sudo mv jb-reset-linux-x86_64 /usr/local/bin/jb-reset
+            ```
+            
+            **From source:**
+            ```bash
+            cargo install --git https://github.com/${{ github.repository }}
+            ```
+            
+            ### ✨ Features
+            - 🔍 Auto-detect JetBrains products
+            - 🔄 Reset trial periods with one command
+            - 💾 Automatic backup before reset
+            - 📊 Beautiful CLI with colored output
+            - 🚀 Rofi/dmenu integration
+            
+            ### 📝 Documentation
+            - [Usage Guide](USAGE.md)
+            - [Commands Reference](COMMANDS.md)
+            - [Installation Guide](INSTALL.md)
+          draft: false
+          prerelease: false
+
+  build-linux:
+    name: Build Linux Binary
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev pkg-config
+
+      - name: Build release binary
+        run: cargo build --release --verbose
+
+      - name: Strip binary
+        run: strip target/release/jb-reset
+
+      - name: Check binary
+        run: |
+          file target/release/jb-reset
+          ls -lh target/release/jb-reset
+          ./target/release/jb-reset --version
+
+      - name: Rename binary
+        run: cp target/release/jb-reset jb-reset-linux-x86_64
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./jb-reset-linux-x86_64
+          asset_name: jb-reset-linux-x86_64
+          asset_content_type: application/octet-stream
+
+      - name: Generate checksum
+        run: sha256sum jb-reset-linux-x86_64 > jb-reset-linux-x86_64.sha256
+
+      - name: Upload checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./jb-reset-linux-x86_64.sha256
+          asset_name: jb-reset-linux-x86_64.sha256
+          asset_content_type: text/plain
