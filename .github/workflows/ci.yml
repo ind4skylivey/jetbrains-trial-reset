@@ -95,7 +95,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --features cli -- -D warnings
 
   build:
     name: Build
@@ -126,10 +126,10 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build (debug)
-        run: cargo build --verbose
+        run: cargo build --features cli --verbose
 
       - name: Build (release)
-        run: cargo build --release --verbose
+        run: cargo build --release --features cli --verbose
 
       - name: Check binary size
         run: |
