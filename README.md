@@ -322,6 +322,19 @@ Security Researcher • Red Team Operator • Rust Developer
 
 ---
 
+## 🗺️ Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for detailed development plans and future features.
+
+**Coming Soon:**
+- 🪟 **Windows Support** (v1.1.0) - Cross-compilation for Windows
+- 🍎 **macOS Support** (v1.2.0) - Intel and Apple Silicon
+- 🎨 **GUI Version** (v2.0.0) - GTK4 graphical interface
+
+Want to contribute? Check the roadmap for priority areas!
+
+---
+
 ## 🙏 Acknowledgments
 
 - 💙 **JetBrains** for creating amazing IDEs
